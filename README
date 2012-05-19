@@ -1,0 +1,6 @@
+A simple JavaScript? parser written in Dart during the London Dart Hackathon
+2012.
+
+The project's focus is on simplicity rather than speed. This allowed it to be
+implemented in a relatively short amount of time, and makes it easier to
+understand.

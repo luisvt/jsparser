@@ -20,6 +20,11 @@
 #import("printer.dart");
 
 void main() {
+  List<String> args = new Options().arguments;
+  if (args.length != 1) {
+    printUsage();
+    return;
+  }
   File file = new File("/tmp/test.js");
   file.readAsText().then((String content) {
     Parser parser = new Parser(new Lexer(content));
@@ -27,4 +32,8 @@ void main() {
     printer.visit(parser.parseProgram());
     print(printer.outBuffer);
   });
+}
+
+void printUsage() {
+  print("Usage: dart jsparser.dart <file.js>");
 }
