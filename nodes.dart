@@ -152,11 +152,17 @@ class BaseVisitor<T> implements NodeVisitor {
   T visitRegExpLiteral(RegExpLiteral node) => visitExpression(node);
 }
 
-class Node {
-  const Node();
+class Node implements Hashable {
+  // I don't really like static state, but the alternatives seem even more
+  // annoying.
+  static int nodeCounter = 0;
+
+  final int nodeId;
+  const Node() : nodeId = nodeCounter++ & 0x7FFFFFFF;
 
   abstract accept(NodeVisitor visitor);
   abstract void visitChildren(NodeVisitor visitor);
+  int hashCode() => nodeId;
 }
 
 class Program extends Node {
