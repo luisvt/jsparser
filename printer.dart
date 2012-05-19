@@ -392,4 +392,8 @@ class Printer implements NodeVisitor {
     out(": ");
     visit(node.value);
   }
+
+  visitRegExpLiteral(RegExpLiteral node) {
+    out(node.pattern);
+  }
 }

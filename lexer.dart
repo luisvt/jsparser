@@ -60,10 +60,9 @@ class Token {
   String toString() => "$type ($position): $value";
 }
 
-// TODO(floitsch): is \x10 a line terminator?
-final LINE_TERMINATORS = "\x13\n";
-final BLANKS = " \t\x10\x12\x13\n";
-final BLANKS_NO_LINE_TERMINATORS = " \t\x12";
+final LINE_TERMINATORS = "\x0A\x0D";
+final BLANKS_NO_LINE_TERMINATORS = "\x20\x09\x0B\x0C\xA0";
+final BLANKS = "$BLANKS_NO_LINE_TERMINATORS$LINE_TERMINATORS";
 final DIGITS = "0123456789";
 final HEX ="${DIGITS}ABCDEFabcdef";
 
@@ -86,11 +85,11 @@ class Lexer {
   bool isBlankNoLineTerminator(String c)
       => isInStringSet(c, BLANKS_NO_LINE_TERMINATORS);
   bool isIdStart(String c) {
+    if (c == "\$" || c == "_") return true;
     int $a = "a".charCodeAt(0);
     int $z = "z".charCodeAt(0);
     int $A = "A".charCodeAt(0);
     int $Z = "Z".charCodeAt(0);
-    if (c == "\$" || c == "_") return true;
     int cValue = c.charCodeAt(0);
     return ($a <= cValue && cValue <= $z ||
             $A <= cValue && cValue <= $Z);
@@ -140,7 +139,7 @@ class Lexer {
     int startPos = position;
     position++;
     bool sawBackslash = false;
-    while (charsLeft()) {
+    while (charsLeft() && !isLineTerminator(input[position])) {
       if (sawBackslash) {
         sawBackslash = false;
         position++;
@@ -259,7 +258,7 @@ class Lexer {
       return result;
     }
     // Number constants.
-    // TODO(floitsch): handle octal numbers.
+    // TODO(floitsch): handle octal numbers?
     if (isInStringSet(c, DIGITS)) {
       return readNumber();
     }
@@ -336,5 +335,26 @@ class Lexer {
         }
         throw "Unexpected character $c $position";
     }
+  }
+
+  Token lexRegExp() {
+    int startPos = position;
+    bool sawBackslash = false;
+    while (charsLeft() && !isLineTerminator(input[position])) {
+      if (sawBackslash) {
+        sawBackslash = false;
+        position++;
+      } else {
+        if (input[position] == "/") {
+          position++;
+          // Now read the regexp flags.
+          while (isIdPart(input[position])) position++;
+          String value = input.substring(startPos, position);
+          return new Token("REGEXP", startPos, value);
+        }
+        sawBackslash = (input[position++] == "\\");
+      }
+    }
+    throw "Unterminated regexp $startPos";
   }
 }

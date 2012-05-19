@@ -734,8 +734,7 @@ class Parser {
         return new StringLiteral(consumeAny().value);  // Still with quotes.
       case "/":
       case "/=":
-        // TODO(floitsch): parse regexps.
-        throw "Unimplemented regexp literal";
+        return parseRegExpLiteral();
       default:
         unexpectedToken(peekToken());
     }
@@ -803,5 +802,16 @@ class Parser {
     }
     consumeAny();  // The "RBRACE";
     return new ObjectLiteral(properties);
+  }
+
+  RegExpLiteral parseRegExpLiteral() {
+    // We must not consume the token before we have parsed the regexp.
+    // Otherwise we would request a new token from the lexer thus messing
+    // up the regexp.
+    Token token = lexer.lexRegExp();
+    if (token.type != "REGEXP") unexpectedToken(token);
+    Token regExpStart = consumeAny();
+    // Note that no weeding has been done on the RegExp flags.
+    return new RegExpLiteral("${regExpStart.value}${token.value}");
   }
 }

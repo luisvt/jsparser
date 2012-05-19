@@ -71,6 +71,7 @@ interface NodeVisitor<T> {
   T visitArrayElement(ArrayElement node);
   T visitObjectLiteral(ObjectLiteral node);
   T visitPropertyInit(PropertyInit node);
+  T visitRegExpLiteral(RegExpLiteral node);
 }
 
 class Node {
@@ -473,4 +474,14 @@ class PropertyInit extends Node {
   PropertyInit(this.name, this.value);
 
   accept(NodeVisitor visitor) => visitor.visitPropertyInit(this);
+}
+
+// Despite being called "Literal" the [RegExpLiteral] does not inherit from
+// [Literal].
+class RegExpLiteral extends Expression {
+  /** Contains the pattern and the flags.*/
+  String pattern;
+  RegExpLiteral(this.pattern);
+
+  accept(NodeVisitor visitor) => visitor.visitRegExpLiteral(this);
 }
