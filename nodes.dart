@@ -74,10 +74,89 @@ interface NodeVisitor<T> {
   T visitRegExpLiteral(RegExpLiteral node);
 }
 
+class BaseVisitor<T> implements NodeVisitor {
+  T visitNode(Node node) {
+    node.visitChildren(this);
+    return null;
+  }
+
+  T visitProgram(Program node) => visitNode(node);
+
+  T visitStatement(Statement node) => visitNode(node);
+  T visitLoop(Loop node) => visitStatement(node);
+  T visitInterruption(Statement node) => visitStatement(node);
+
+  T visitBlock(Block node) => visitStatement(node);
+  T visitVariableDeclarationList(VariableDeclarationList node)
+      => visitStatement(node);
+  T visitExpressionStatement(ExpressionStatement node)
+      => visitStatement(node);
+  T visitNOP(NOP node) => visitStatement(node);
+  T visitIf(If node) => visitIf(node);
+  T visitFor(For node) => visitLoop(node);
+  T visitForIn(ForIn node) => visitLoop(node);
+  T visitWhile(While node) => visitLoop(node);
+  T visitDo(Do node) => visitLoop(node);
+  T visitContinue(Continue node) => visitInterruption(node);
+  T visitBreak(Break node) => visitInterruption(node);
+  T visitReturn(Return node) => visitInterruption(node);
+  T visitThrow(Throw node) => visitInterruption(node);
+  T visitTry(Try node) => visitStatement(node);
+  T visitWith(With node) => visitStatement(node);
+  T visitSwitch(Switch node) => visitSwitch(node);
+  T visitFunctionDeclaration(FunctionDeclaration node)
+      => visitStatement(node);
+  T visitLabeled(Labeled node) => visitStatement(node);
+
+  T visitCatch(Catch node) => visitNode(node);
+  T visitInit(Init node) => visitNode(node);
+  T visitCase(Case node) => visitNode(node);
+  T visitDefault(Default node) => visitNode(node);
+
+  T visitExpression(Expression node) => visitNode(node);
+  T visitAssign(Assign node) => visitExpression(node);
+
+  T visitSequence(Sequence node) => visitExpression(node);
+  T visitVassign(Vassign node) => visitAssign(node);
+  T visitAccsign(Accsign node) => visitAssign(node);
+  T visitVassignOp(VassignOp node) => visitVassign(node);
+  T visitAccsignOp(AccsignOp node) => visitAccsign(node);
+  T visitConditional(Conditional node) => visitExpression(node);
+  T visitNew(New node) => visitExpression(node);
+  T visitCall(Call node) => visitExpression(node);
+  T visitBinary(Binary node) => visitCall(node);
+  T visitUnary(Unary node) => visitCall(node);
+  T visitPostfix(Postfix node) => visitCall(node);
+  T visitAccess(Access node) => visitExpression(node);
+
+  T visitRef(Ref node) => visitExpression(node);
+  T visitThis(This node) => visitRef(node);
+  T visitDecl(Decl node) => visitRef(node);
+  T visitParam(Param node) => visitDecl(node);
+
+  T visitNamedFunction(NamedFunction node) => visitExpression(node);
+  T visitFun(Fun node) => visitExpression(node);
+
+  T visitLiteral(Literal node) => visitExpression(node);
+
+  T visitBoolLiteral(BoolLiteral node) => visitLiteral(node);
+  T visitStringLiteral(StringLiteral node) => visitLiteral(node);
+  T visitNumberLiteral(NumberLiteral node) => visitLiteral(node);
+  T visitNullLiteral(NullLiteral node) => visitLiteral(node);
+  T visitUndefinedLiteral(UndefinedLiteral node) => visitLiteral(node);
+
+  T visitArrayLiteral(ArrayLiteral node) => visitExpression(node);
+  T visitArrayElement(ArrayElement node) => visitNode(node);
+  T visitObjectLiteral(ObjectLiteral node) => visitExpression(node);
+  T visitPropertyInit(PropertyInit node) => visitNode(node);
+  T visitRegExpLiteral(RegExpLiteral node) => visitExpression(node);
+}
+
 class Node {
   const Node();
 
   abstract accept(NodeVisitor visitor);
+  abstract void visitChildren(NodeVisitor visitor);
 }
 
 class Program extends Node {
@@ -85,6 +164,7 @@ class Program extends Node {
   Program(this.body);
 
   accept(NodeVisitor visitor) => visitor.visitProgram(this);
+  void visitChildren(NodeVisitor visitor) {}
 }
 
 abstract class Statement extends Node {
@@ -96,6 +176,9 @@ class Block extends Statement {
   Block(this.elements);
 
   accept(NodeVisitor visitor) => visitor.visitBlock(this);
+  void visitChildren(NodeVisitor visitor) {
+    for (Statement statement in elements) statement.accept(visitor);
+  }
 }
 
 class VariableDeclarationList extends Statement {
@@ -103,6 +186,9 @@ class VariableDeclarationList extends Statement {
   VariableDeclarationList(this.declarations);
 
   accept(NodeVisitor visitor) => visitor.visitVariableDeclarationList(this);
+  void visitChildren(NodeVisitor visitor) {
+    for (Init init in declarations) init.accept(visitor);
+  }
 }
 
 class ExpressionStatement extends Statement {
@@ -110,6 +196,7 @@ class ExpressionStatement extends Statement {
   ExpressionStatement(this.expr);
 
   accept(NodeVisitor visitor) => visitor.visitExpressionStatement(this);
+  void visitChildren(NodeVisitor visitor) { expr.accept(visitor); }
 }
 
 class Init extends Node {
@@ -118,12 +205,17 @@ class Init extends Node {
   Init(this.decl, this.value);
 
   accept(NodeVisitor visitor) => visitor.visitInit(this);
+  void visitChildren(NodeVisitor visitor) {
+    decl.accept(visitor);
+    if (value !== null) value.accept(visitor);
+  }
 }
 
 class NOP extends Statement {
   const NOP();
 
   accept(NodeVisitor visitor) => visitor.visitNOP(this);
+  void visitChildren(NodeVisitor visitor) {}
 }
 
 class If extends Statement {
@@ -134,6 +226,11 @@ class If extends Statement {
   bool get hasElse() => otherwise is !NOP;
 
   accept(NodeVisitor visitor) => visitor.visitIf(this);
+  void visitChildren(NodeVisitor visitor) {
+    test.accept(visitor);
+    then.accept(visitor);
+    otherwise.accept(visitor);
+  }
 }
 
 abstract class Loop extends Statement {
@@ -148,6 +245,12 @@ class For extends Loop {
   For(this.init, this.test, this.incr, Statement body) : super(body);
 
   accept(NodeVisitor visitor) => visitor.visitFor(this);
+  void visitChildren(NodeVisitor visitor) {
+    init.accept(visitor);
+    test.accept(visitor);
+    incr.accept(visitor);
+    body.accept(visitor);
+  }
 }
 
 class ForIn extends Loop {
@@ -156,6 +259,11 @@ class ForIn extends Loop {
   ForIn(this.lhs, this.obj, Statement body) : super(body);
 
   accept(NodeVisitor visitor) => visitor.visitForIn(this);
+  void visitChildren(NodeVisitor visitor) {
+    lhs.accept(visitor);
+    obj.accept(visitor);
+    body.accept(visitor);
+  }
 }
 
 class While extends Loop {
@@ -163,6 +271,10 @@ class While extends Loop {
   While(this.test, Statement body) : super(body);
 
   accept(NodeVisitor visitor) => visitor.visitWhile(this);
+  void visitChildren(NodeVisitor visitor) {
+    test.accept(visitor);
+    body.accept(visitor);
+  }
 }
 
 class Do extends Loop {
@@ -170,6 +282,10 @@ class Do extends Loop {
   Do(Statement body, this.test) : super(body);
 
   accept(NodeVisitor visitor) => visitor.visitDo(this);
+  void visitChildren(NodeVisitor visitor) {
+    body.accept(visitor);
+    test.accept(visitor);
+  }
 }
 
 class Continue extends Statement {
@@ -177,6 +293,7 @@ class Continue extends Statement {
   Continue(this.id);
 
   accept(NodeVisitor visitor) => visitor.visitContinue(this);
+  void visitChildren(NodeVisitor visitor) {}
 }
 
 class Break extends Statement {
@@ -184,6 +301,7 @@ class Break extends Statement {
   Break(this.id);
 
   accept(NodeVisitor visitor) => visitor.visitBreak(this);
+  void visitChildren(NodeVisitor visitor) {}
 }
 
 class Return extends Statement {
@@ -191,6 +309,9 @@ class Return extends Statement {
   Return(this.expr);
 
   accept(NodeVisitor visitor) => visitor.visitReturn(this);
+  void visitChildren(NodeVisitor visitor) {
+    expr.accept(visitor);
+  }
 }
 
 class Throw extends Statement {
@@ -198,6 +319,9 @@ class Throw extends Statement {
   Throw(this.expr);
 
   accept(NodeVisitor visitor) => visitor.visitThrow(this);
+  void visitChildren(NodeVisitor visitor) {
+    expr.accept(visitor);
+  }
 }
 
 class Try extends Statement {
@@ -207,6 +331,11 @@ class Try extends Statement {
   Try(this.body, this.catchPart, this.finallyPart);
 
   accept(NodeVisitor visitor) => visitor.visitTry(this);
+  void visitChildren(NodeVisitor visitor) {
+    body.accept(visitor);
+    if (catchPart !== null) catchPart.accept(visitor);
+    if (finallyPart !== null) finallyPart.accept(visitor);
+  }
 }
 
 class Catch extends Node {
@@ -215,6 +344,10 @@ class Catch extends Node {
   Catch(this.decl, this.body);
 
   accept(NodeVisitor visitor) => visitor.visitCatch(this);
+  void visitChildren(NodeVisitor visitor) {
+    decl.accept(visitor);
+    body.accept(visitor);
+  }
 }
 
 class With extends Statement {
@@ -223,6 +356,10 @@ class With extends Statement {
   With(this.object, this.body);
 
   accept(NodeVisitor visitor) => visitor.visitWith(this);
+  void visitChildren(NodeVisitor visitor) {
+    object.accept(visitor);
+    body.accept(visitor);
+  }
 }
 
 class Switch extends Statement {
@@ -231,6 +368,10 @@ class Switch extends Statement {
   Switch(this.key, this.cases);
 
   accept(NodeVisitor visitor) => visitor.visitSwitch(this);
+  void visitChildren(NodeVisitor visitor) {
+    key.accept(visitor);
+    for (SwitchClause clause in cases) clause.accept(visitor);
+  }
 }
 
 abstract class SwitchClause extends Node {
@@ -243,12 +384,19 @@ class Case extends SwitchClause {
   Case(this.expr, Block body) : super(body);
 
   accept(NodeVisitor visitor) => visitor.visitCase(this);
+  void visitChildren(NodeVisitor visitor) {
+    expr.accept(visitor);
+    body.accept(visitor);
+  }
 }
 
 class Default extends SwitchClause {
   Default(Block body) : super(body);
 
   accept(NodeVisitor visitor) => visitor.visitDefault(this);
+  void visitChildren(NodeVisitor visitor) {
+    body.accept(visitor);
+  }
 }
 
 class FunctionDeclaration extends Statement {
@@ -257,6 +405,10 @@ class FunctionDeclaration extends Statement {
   FunctionDeclaration(this.id, this.fun);
 
   accept(NodeVisitor visitor) => visitor.visitFunctionDeclaration(this);
+  void visitChildren(NodeVisitor visitor) {
+    id.accept(visitor);
+    fun.accept(visitor);
+  }
 }
 
 class Labeled extends Statement {
@@ -265,6 +417,9 @@ class Labeled extends Statement {
   Labeled(this.id, this.body);
 
   accept(NodeVisitor visitor) => visitor.visitLabeled(this);
+  void visitChildren(NodeVisitor visitor) {
+    body.accept(visitor);
+  }
 }
 
 abstract class Expression extends Node {
@@ -276,6 +431,9 @@ class Sequence extends Expression {
   Sequence(this.expressions);
 
   accept(NodeVisitor visitor) => visitor.visitSequence(this);
+  void visitChildren(NodeVisitor visitor) {
+    for (Expression expr in expressions) expr.accept(visitor);
+  }
 }
 
 class Assign extends Expression {
@@ -289,6 +447,10 @@ class Vassign extends Assign {
   Vassign(this.lhs, Expression val): super(val);
 
   accept(NodeVisitor visitor) => visitor.visitVassign(this);
+  void visitChildren(NodeVisitor visitor) {
+    lhs.accept(visitor);
+    val.accept(visitor);
+  }
 }
 
 class VassignOp extends Vassign {
@@ -296,6 +458,11 @@ class VassignOp extends Vassign {
   VassignOp(Ref lhs, this.op, Expression val) : super(lhs, val);
 
   accept(NodeVisitor visitor) => visitor.visitVassignOp(this);
+  void visitChildren(NodeVisitor visitor) {
+    lhs.accept(visitor);
+    op.accept(visitor);
+    val.accept(visitor);
+  }
 }
 
 class Accsign extends Assign {
@@ -303,6 +470,10 @@ class Accsign extends Assign {
   Accsign(this.lhs, Expression val): super(val);
 
   accept(NodeVisitor visitor) => visitor.visitAccsign(this);
+  void visitChildren(NodeVisitor visitor) {
+    lhs.accept(visitor);
+    val.accept(visitor);
+  }
 }
 
 class AccsignOp extends Accsign {
@@ -310,6 +481,11 @@ class AccsignOp extends Accsign {
   AccsignOp(Access lhs, this.op, Expression val) : super(lhs, val);
 
   accept(NodeVisitor visitor) => visitor.visitAccsignOp(this);
+  void visitChildren(NodeVisitor visitor) {
+    lhs.accept(visitor);
+    op.accept(visitor);
+    val.accept(visitor);
+  }
 }
 
 class Conditional extends Expression {
@@ -319,6 +495,11 @@ class Conditional extends Expression {
   Conditional(this.test, this.then, this.otherwise);
 
   accept(NodeVisitor visitor) => visitor.visitConditional(this);
+  void visitChildren(NodeVisitor visitor) {
+    test.accept(visitor);
+    then.accept(visitor);
+    otherwise.accept(visitor);
+  }
 }
 
 class New extends Expression {
@@ -327,6 +508,10 @@ class New extends Expression {
   New(this.cls, this.arguments);
 
   accept(NodeVisitor visitor) => visitor.visitNew(this);
+  void visitChildren(NodeVisitor visitor) {
+    cls.accept(visitor);
+    for (Expression arg in arguments) arg.accept(visitor);
+  }
 }
 
 class Call extends Expression {
@@ -335,24 +520,31 @@ class Call extends Expression {
   Call(this.target, this.arguments);
 
   accept(NodeVisitor visitor) => visitor.visitCall(this);
+  void visitChildren(NodeVisitor visitor) {
+    target.accept(visitor);
+    for (Expression arg in arguments) arg.accept(visitor);
+  }
 }
 
 class Binary extends Call {
   Binary(Ref op, List<Expression> args) : super(op, args);
 
   accept(NodeVisitor visitor) => visitor.visitBinary(this);
+  // Inherit visitChildren from [Call].
 }
 
 class Unary extends Call {
   Unary(Ref op, List<Expression> arg) : super(op, arg);
 
   accept(NodeVisitor visitor) => visitor.visitUnary(this);
+  // Inherit visitChildren from [Call].
 }
 
 class Postfix extends Call {
   Postfix(Ref op, List<Expression> arg) : super(op, arg);
 
   accept(NodeVisitor visitor) => visitor.visitPostfix(this);
+  // Inherit visitChildren from [Call].
 }
 
 class Ref extends Expression {
@@ -360,24 +552,28 @@ class Ref extends Expression {
   const Ref(this.id);
 
   accept(NodeVisitor visitor) => visitor.visitRef(this);
+  void visitChildren(NodeVisitor visitor) {}
 }
 
 class This extends Ref {
   const This() : super("this");
 
   accept(NodeVisitor visitor) => visitor.visitThis(this);
+  // Inherit visitChildren from [Ref].
 }
 
 class Decl extends Ref {
   Decl(String id) : super(id);
 
   accept(NodeVisitor visitor) => visitor.visitDecl(this);
+  // Inherit visitChildren from [Ref].
 }
 
 class Param extends Decl {
   Param(String id) : super(id);
 
   accept(NodeVisitor visitor) => visitor.visitParam(this);
+  // Inherit visitChildren from [Ref].
 }
 
 class NamedFunction extends Expression {
@@ -386,6 +582,10 @@ class NamedFunction extends Expression {
   NamedFunction(this.id, this.fun);
 
   accept(NodeVisitor visitor) => visitor.visitNamedFunction(this);
+  void visitChildren(NodeVisitor visitor) {
+    id.accept(visitor);
+    fun.accept(visitor);
+  }
 }
 
 class Fun extends Expression {
@@ -394,6 +594,10 @@ class Fun extends Expression {
   Fun(this.params, this.body);
 
   accept(NodeVisitor visitor) => visitor.visitFun(this);
+  void visitChildren(NodeVisitor visitor) {
+    for (Param param in params) param.accept(visitor);
+    body.accept(visitor);
+  }
 }
 
 class Access extends Expression {
@@ -402,10 +606,16 @@ class Access extends Expression {
   Access(this.receiver, this.selector);
 
   accept(NodeVisitor visitor) => visitor.visitAccess(this);
+  void visitChildren(NodeVisitor visitor) {
+    receiver.accept(visitor);
+    selector.accept(visitor);
+  }
 }
 
 abstract class Literal extends Expression {
   const Literal();
+
+  void visitChildren(NodeVisitor visitor) {}
 }
 
 class BoolLiteral extends Literal {
@@ -413,18 +623,21 @@ class BoolLiteral extends Literal {
   const BoolLiteral(this.value);
 
   accept(NodeVisitor visitor) => visitor.visitBoolLiteral(this);
+  // [visitChildren] inherited from [Literal].
 }
 
 class UndefinedLiteral extends Literal {
   const UndefinedLiteral();
 
   accept(NodeVisitor visitor) => visitor.visitUndefinedLiteral(this);
+  // [visitChildren] inherited from [Literal].
 }
 
 class NullLiteral extends Literal {
   const NullLiteral();
 
   accept(NodeVisitor visitor) => visitor.visitNullLiteral(this);
+  // [visitChildren] inherited from [Literal].
 }
 
 class StringLiteral extends Literal {
@@ -432,6 +645,7 @@ class StringLiteral extends Literal {
   const StringLiteral(this.value);
 
   accept(NodeVisitor visitor) => visitor.visitStringLiteral(this);
+  // [visitChildren] inherited from [Literal].
 }
 
 class NumberLiteral extends Literal {
@@ -439,6 +653,7 @@ class NumberLiteral extends Literal {
   const NumberLiteral(this.value);
 
   accept(NodeVisitor visitor) => visitor.visitNumberLiteral(this);
+  // [visitChildren] inherited from [Literal].
 }
 
 // Despite being called "Literal" the [ArrayLiteral] does not inherit from
@@ -449,6 +664,9 @@ class ArrayLiteral extends Expression {
   ArrayLiteral(this.length, this.elements);
 
   accept(NodeVisitor visitor) => visitor.visitArrayLiteral(this);
+  void visitChildren(NodeVisitor visitor) {
+    for (ArrayElement element in elements) element.accept(visitor);
+  }
 }
 
 class ArrayElement extends Node {
@@ -457,6 +675,9 @@ class ArrayElement extends Node {
   ArrayElement(this.index, this.value);
 
   accept(NodeVisitor visitor) => visitor.visitArrayElement(this);
+  void visitChildren(NodeVisitor visitor) {
+    value.accept(visitor);
+  }
 }
 
 // Despite being called "Literal" the [ObjectLiteral] does not inherit from
@@ -466,6 +687,9 @@ class ObjectLiteral extends Expression {
   ObjectLiteral(this.properties);
 
   accept(NodeVisitor visitor) => visitor.visitObjectLiteral(this);
+  void visitChildren(NodeVisitor visitor) {
+    for (PropertyInit init in properties) init.accept(visitor);
+  }
 }
 
 class PropertyInit extends Node {
@@ -474,6 +698,10 @@ class PropertyInit extends Node {
   PropertyInit(this.name, this.value);
 
   accept(NodeVisitor visitor) => visitor.visitPropertyInit(this);
+  void visitChildren(NodeVisitor visitor) {
+    name.accept(visitor);
+    value.accept(visitor);
+  }
 }
 
 // Despite being called "Literal" the [RegExpLiteral] does not inherit from
@@ -484,4 +712,5 @@ class RegExpLiteral extends Expression {
   RegExpLiteral(this.pattern);
 
   accept(NodeVisitor visitor) => visitor.visitRegExpLiteral(this);
+  void visitChildren(NodeVisitor visitor) {}
 }
