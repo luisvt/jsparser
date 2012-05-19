@@ -38,6 +38,7 @@ interface NodeVisitor<T> {
   T visitCase(Case node);
   T visitDefault(Default node);
   T visitFunctionDeclaration(FunctionDeclaration declaration);
+  T visitLabeled(Labeled node);
 
   T visitSequence(Sequence sequence);
   T visitVassign(Vassign vassign);
@@ -257,6 +258,14 @@ class FunctionDeclaration extends Statement {
   accept(NodeVisitor visitor) => visitor.visitFunctionDeclaration(this);
 }
 
+class Labeled extends Statement {
+  String id;
+  Statement body;
+  Labeled(this.id, this.body);
+
+  accept(NodeVisitor visitor) => visitor.visitLabeled(this);
+}
+
 abstract class Expression extends Node {
   const Expression();
 }
@@ -320,7 +329,7 @@ class New extends Expression {
 }
 
 class Call extends Expression {
-  Ref target;
+  Expression target;
   List<Expression> arguments;
   Call(this.target, this.arguments);
 

@@ -24,11 +24,11 @@ class Parser {
 
   Parser(this.lexer) : this.peekedTokens = <Token>[];
 
-  error(String msg, var obj, Token token) {
+  void error(String msg, var obj, Token token) {
     throw "$msg: $obj. $token";
   }
 
-  unexpectedToken(Token token) {
+  void unexpectedToken(Token token) {
     throw "Unexpected token: $token";
   }
 
@@ -228,7 +228,7 @@ class Parser {
     consume("SEMICOLON");
 
     Expression incr;
-    if (peekTokenType() != "SEMICOLON") {
+    if (peekTokenType() != "RPAREN") {
       incr = parseExpression(false);
     }
     consume("RPAREN");
@@ -271,6 +271,7 @@ class Parser {
   Do parseDoWhile() {
     consume("DO");
     Statement body = parseStatement();
+    consume("WHILE");
     consume("LPAREN");
     Expression test = parseExpression(false);
     consume("RPAREN");
@@ -313,6 +314,7 @@ class Parser {
         case "ERROR":
         case "SEMICOLON":
           value = new UndefinedLiteral();
+          break;
         default:
           value = parseExpression(false);
       }
@@ -389,7 +391,7 @@ class Parser {
     }
   }
 
-  parseThrow() {
+  Throw parseThrow() {
     consume("THROW");
     if (isAtNewLineToken()) {
       error("throw must have a value", null, peekToken());
@@ -399,7 +401,7 @@ class Parser {
     return new Throw(expr);
   }
 
-  parseTry() {
+  Try parseTry() {
     Token errorToken = peekToken();
     consume("TRY");
     Block body = parseBlock();
@@ -417,7 +419,7 @@ class Parser {
     return new Try(body, catchPart, finallyPart);
   }
 
-  parseCatch() {
+  Catch parseCatch() {
     consume("CATCH");
     consume("LPAREN");
     String id = consume("ID");
@@ -426,9 +428,9 @@ class Parser {
     return new Catch(new Param(id), body);
   }
 
-  parseFinally() {
+  Block parseFinally() {
     consume("FINALLY");
-    parseBlock();
+    return parseBlock();
   }
 
   Statement parseLabeledOrExpression() {
@@ -449,7 +451,11 @@ class Parser {
     return new ExpressionStatement(expr);
   }
 
-  parseLabeled() => "Unimplemented";
+  Labeled parseLabeled() {
+    String id = consume("ID");
+    consume(":");
+    return new Labeled(id, parseStatement());
+  }
 
   FunctionDeclaration parseFunctionDeclaration() => parseFunction(true);
   /** Returns either a Function or a NamedFunction */
@@ -487,7 +493,7 @@ class Parser {
   Expression parseExpression(bool inForInit) => parseSequence(inForInit);
 
   Expression parseSequence(bool inForInit) {
-    Assign expr = parseAssignExpression(inForInit);
+    Expression expr = parseAssignExpression(inForInit);
     if (peekTokenType() == "COMMA") {
       List<Expression> expressions = <Expression>[expr];
       while (peekTokenType() == "COMMA") {
@@ -526,11 +532,11 @@ class Parser {
     if (op == "=") error("bad assignment", null, errorToken);
     if (expr is Access) {
       op = removeEquals(op);
-      return new AccsignOp(expr, op, rhs);
+      return new AccsignOp(expr, new Ref(op), rhs);
     }
     if (expr is Ref) {
       op = removeEquals(op);
-      return new VassignOp(expr, op, rhs);
+      return new VassignOp(expr, new Ref(op), rhs);
     }
     error("bad assignment", null, errorToken);
   }
@@ -560,8 +566,8 @@ class Parser {
       case ">":
       case "<=":
       case ">=":
-      case "instanceof":
-      case "in": return 7;
+      case "INSTANCEOF":
+      case "IN": return 7;
       case "<<":
       case ">>":
       case ">>>": return 8;
@@ -735,7 +741,7 @@ class Parser {
     }
   }
 
-  parseArrayLiteral() {
+  ArrayLiteral parseArrayLiteral() {
     // Basically: every array-element finishes with ",".
     //   However, the very last one can be avoided if the array-element is not
     //   an ellision.
@@ -764,7 +770,7 @@ class Parser {
     }
   }
 
-  parseObjectLiteral() {
+  ObjectLiteral parseObjectLiteral() {
     Literal parsePropertyName() {
       switch (peekTokenType()) {
         case "ID":

@@ -106,13 +106,16 @@ class Printer implements NodeVisitor {
     outIndentLn("for (");
     indentLevel++;
     visit(loop.init);
-    indentLevel--;
+    indent();
     visit(loop.test);
-    out("; ");
+    out(";");
     if (loop.incr !== null) {
+      out("\n");
+      indent();
       visit(loop.incr);
     }
-    out(")\n");
+    indentLevel--;
+    outLn(")");
     visit(loop.body);
   }
 
@@ -196,8 +199,13 @@ class Printer implements NodeVisitor {
     }
   }
 
+  visitLabeled(Labeled node) {
+    outIndentLn("${node.id}:");
+    visit(node.body);
+  }
+
   visitFunctionDeclaration(FunctionDeclaration declaration) {
-    out("function ");
+    outIndent("function ");
     visit(declaration.id);
     out("(");
     visitInterleaved(declaration.fun.params, ", ");
@@ -308,12 +316,10 @@ class Printer implements NodeVisitor {
   }
 
   visitAccess(Access access) {
-    out("(");
     visit(access.receiver);
     out("[");
     visit(access.selector);
     out("]");
-    out(")");
   }
 
   visitNamedFunction(NamedFunction namedFunction) {
@@ -331,7 +337,7 @@ class Printer implements NodeVisitor {
     visitInterleaved(fun.params, ", ");
     outLn(")");
     visit(fun.body);
-    out(")");
+    outIndent(")");
   }
 
   visitBoolLiteral(BoolLiteral node) {

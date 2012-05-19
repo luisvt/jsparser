@@ -25,7 +25,7 @@ void main() {
     printUsage();
     return;
   }
-  File file = new File("/tmp/test.js");
+  File file = new File(args[0]);
   file.readAsText().then((String content) {
     Parser parser = new Parser(new Lexer(content));
     Printer printer = new Printer();
