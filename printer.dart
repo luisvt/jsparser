@@ -64,7 +64,7 @@ class Printer implements NodeVisitor {
 
   visitInit(Init init) {
     visit(init.decl);
-    if (init.value !== init.value) {
+    if (init.value !== null) {
       out(" = ");
       visit(init.value);
     }
