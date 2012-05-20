@@ -130,9 +130,9 @@ class BaseVisitor<T> implements NodeVisitor {
   T visitAccess(Access node) => visitExpression(node);
 
   T visitRef(Ref node) => visitExpression(node);
-  T visitThis(This node) => visitRef(node);
   T visitDecl(Decl node) => visitRef(node);
   T visitParam(Param node) => visitDecl(node);
+  T visitThis(This node) => visitParam(node);
 
   T visitNamedFunction(NamedFunction node) => visitExpression(node);
   T visitFun(Fun node) => visitExpression(node);
@@ -158,7 +158,7 @@ class Node implements Hashable {
   static int nodeCounter = 0;
 
   final int nodeId;
-  const Node() : nodeId = nodeCounter++ & 0x7FFFFFFF;
+  Node() : nodeId = nodeCounter++ & 0x7FFFFFFF;
 
   abstract accept(NodeVisitor visitor);
   abstract void visitChildren(NodeVisitor visitor);
@@ -174,7 +174,6 @@ class Program extends Node {
 }
 
 abstract class Statement extends Node {
-  const Statement();
 }
 
 class Block extends Statement {
@@ -218,7 +217,7 @@ class Init extends Node {
 }
 
 class NOP extends Statement {
-  const NOP();
+  NOP();
 
   accept(NodeVisitor visitor) => visitor.visitNOP(this);
   void visitChildren(NodeVisitor visitor) {}
@@ -429,7 +428,6 @@ class Labeled extends Statement {
 }
 
 abstract class Expression extends Node {
-  const Expression();
 }
 
 class Sequence extends Expression {
@@ -555,17 +553,15 @@ class Postfix extends Call {
 
 class Ref extends Expression {
   final String id;
-  const Ref(this.id);
+  final bool isOperator = false;
+  final bool isUnaryOperator = false;
+
+  Ref(this.id);
+  Ref.operator(this.id) : isOperator = true;
+  Ref.unaryOperator(this.id) : isOperator = true, isUnaryOperator = true;
 
   accept(NodeVisitor visitor) => visitor.visitRef(this);
   void visitChildren(NodeVisitor visitor) {}
-}
-
-class This extends Ref {
-  const This() : super("this");
-
-  accept(NodeVisitor visitor) => visitor.visitThis(this);
-  // Inherit visitChildren from [Ref].
 }
 
 class Decl extends Ref {
@@ -579,6 +575,13 @@ class Param extends Decl {
   Param(String id) : super(id);
 
   accept(NodeVisitor visitor) => visitor.visitParam(this);
+  // Inherit visitChildren from [Ref].
+}
+
+class This extends Param {
+  This() : super("this");
+
+  accept(NodeVisitor visitor) => visitor.visitThis(this);
   // Inherit visitChildren from [Ref].
 }
 
@@ -619,28 +622,26 @@ class Access extends Expression {
 }
 
 abstract class Literal extends Expression {
-  const Literal();
-
   void visitChildren(NodeVisitor visitor) {}
 }
 
 class BoolLiteral extends Literal {
   final bool value;
-  const BoolLiteral(this.value);
+  BoolLiteral(this.value);
 
   accept(NodeVisitor visitor) => visitor.visitBoolLiteral(this);
   // [visitChildren] inherited from [Literal].
 }
 
 class UndefinedLiteral extends Literal {
-  const UndefinedLiteral();
+  UndefinedLiteral();
 
   accept(NodeVisitor visitor) => visitor.visitUndefinedLiteral(this);
   // [visitChildren] inherited from [Literal].
 }
 
 class NullLiteral extends Literal {
-  const NullLiteral();
+  NullLiteral();
 
   accept(NodeVisitor visitor) => visitor.visitNullLiteral(this);
   // [visitChildren] inherited from [Literal].
@@ -648,7 +649,7 @@ class NullLiteral extends Literal {
 
 class StringLiteral extends Literal {
   final String value;
-  const StringLiteral(this.value);
+  StringLiteral(this.value);
 
   accept(NodeVisitor visitor) => visitor.visitStringLiteral(this);
   // [visitChildren] inherited from [Literal].
@@ -656,7 +657,7 @@ class StringLiteral extends Literal {
 
 class NumberLiteral extends Literal {
   final String value;
-  const NumberLiteral(this.value);
+  NumberLiteral(this.value);
 
   accept(NodeVisitor visitor) => visitor.visitNumberLiteral(this);
   // [visitChildren] inherited from [Literal].

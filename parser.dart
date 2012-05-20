@@ -532,11 +532,11 @@ class Parser {
     if (op == "=") error("bad assignment", null, errorToken);
     if (expr is Access) {
       op = removeEquals(op);
-      return new AccsignOp(expr, new Ref(op), rhs);
+      return new AccsignOp(expr, new Ref.operator(op), rhs);
     }
     if (expr is Ref) {
       op = removeEquals(op);
-      return new VassignOp(expr, new Ref(op), rhs);
+      return new VassignOp(expr, new Ref.operator(op), rhs);
     }
     error("bad assignment", null, errorToken);
   }
@@ -593,7 +593,7 @@ class Parser {
         if (newLevel != level) return expr;
         String op = consumeAny().value;
         Expression other = parseBinaryExpressionOfLevel(level + 1);
-        expr = new Binary(new Ref(op), <Expression>[expr, other]);
+        expr = new Binary(new Ref.operator(op), <Expression>[expr, other]);
       }
     }
 
@@ -609,12 +609,12 @@ class Parser {
       case "!":
       case "++":
       case "--":
-        Ref op = new Ref(consumeAny().value);
+        Ref op = new Ref.operator(consumeAny().value);
         Expression expr = parseUnary();
         return new Unary(op, <Expression>[expr]);
       case "+":
       case "-":
-        Ref op = new Ref("unary-" + consumeAny().value);
+        Ref op = new Ref.unaryOperator(consumeAny().value);
         Expression expr = parseUnary();
         return new Unary(op, <Expression>[expr]);
       default:
@@ -626,7 +626,7 @@ class Parser {
     Expression lhs = parseLeftHandSide();
     if (!isAtNewLineToken() &&
         (peekTokenType() == "++" || peekTokenType() == "--")) {
-      Ref op = new Ref(consumeAny().value);
+      Ref op = new Ref.operator(consumeAny().value);
       return new Postfix(op, <Expression>[lhs]);
     }
     return lhs;
