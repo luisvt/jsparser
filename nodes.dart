@@ -18,7 +18,6 @@ interface NodeVisitor<T> {
   T visitProgram(Program program);
 
   T visitBlock(Block block);
-  T visitVariableDeclarationList(VariableDeclarationList list);
   T visitExpressionStatement(ExpressionStatement expressionStatement);
   T visitInit(Init init);
   T visitNOP(NOP nop);
@@ -40,6 +39,7 @@ interface NodeVisitor<T> {
   T visitFunctionDeclaration(FunctionDeclaration declaration);
   T visitLabeled(Labeled node);
 
+  T visitVariableDeclarationList(VariableDeclarationList list);
   T visitSequence(Sequence sequence);
   T visitVassign(Vassign vassign);
   T visitAccsign(Accsign accsign);
@@ -87,8 +87,6 @@ class BaseVisitor<T> implements NodeVisitor {
   T visitInterruption(Statement node) => visitStatement(node);
 
   T visitBlock(Block node) => visitStatement(node);
-  T visitVariableDeclarationList(VariableDeclarationList node)
-      => visitStatement(node);
   T visitExpressionStatement(ExpressionStatement node)
       => visitStatement(node);
   T visitNOP(NOP node) => visitStatement(node);
@@ -103,7 +101,7 @@ class BaseVisitor<T> implements NodeVisitor {
   T visitThrow(Throw node) => visitInterruption(node);
   T visitTry(Try node) => visitStatement(node);
   T visitWith(With node) => visitStatement(node);
-  T visitSwitch(Switch node) => visitSwitch(node);
+  T visitSwitch(Switch node) => visitStatement(node);
   T visitFunctionDeclaration(FunctionDeclaration node)
       => visitStatement(node);
   T visitLabeled(Labeled node) => visitStatement(node);
@@ -116,6 +114,8 @@ class BaseVisitor<T> implements NodeVisitor {
   T visitExpression(Expression node) => visitNode(node);
   T visitAssign(Assign node) => visitExpression(node);
 
+  T visitVariableDeclarationList(VariableDeclarationList node)
+      => visitExpression(node);
   T visitSequence(Sequence node) => visitExpression(node);
   T visitVassign(Vassign node) => visitAssign(node);
   T visitAccsign(Accsign node) => visitAssign(node);
@@ -188,34 +188,12 @@ class Block extends Statement {
   }
 }
 
-class VariableDeclarationList extends Statement {
-  List<Init> declarations;
-  VariableDeclarationList(this.declarations);
-
-  accept(NodeVisitor visitor) => visitor.visitVariableDeclarationList(this);
-  void visitChildren(NodeVisitor visitor) {
-    for (Init init in declarations) init.accept(visitor);
-  }
-}
-
 class ExpressionStatement extends Statement {
   Expression expr;
   ExpressionStatement(this.expr);
 
   accept(NodeVisitor visitor) => visitor.visitExpressionStatement(this);
   void visitChildren(NodeVisitor visitor) { expr.accept(visitor); }
-}
-
-class Init extends Node {
-  Decl decl;
-  Expression value;  // May be null.
-  Init(this.decl, this.value);
-
-  accept(NodeVisitor visitor) => visitor.visitInit(this);
-  void visitChildren(NodeVisitor visitor) {
-    decl.accept(visitor);
-    if (value !== null) value.accept(visitor);
-  }
 }
 
 class NOP extends Statement {
@@ -246,22 +224,22 @@ abstract class Loop extends Statement {
 }
 
 class For extends Loop {
-  Statement init;
+  Expression init;
   Expression test;
   Expression incr;
   For(this.init, this.test, this.incr, Statement body) : super(body);
 
   accept(NodeVisitor visitor) => visitor.visitFor(this);
   void visitChildren(NodeVisitor visitor) {
-    init.accept(visitor);
-    test.accept(visitor);
-    incr.accept(visitor);
+    if (init !== null) init.accept(visitor);
+    if (test !== null) test.accept(visitor);
+    if (incr !== null) incr.accept(visitor);
     body.accept(visitor);
   }
 }
 
 class ForIn extends Loop {
-  Node lhs;
+  Expression lhs;
   Expression obj;
   ForIn(this.lhs, this.obj, Statement body) : super(body);
 
@@ -430,6 +408,28 @@ class Labeled extends Statement {
 }
 
 abstract class Expression extends Node {
+}
+
+class VariableDeclarationList extends Expression {
+  List<Init> declarations;
+  VariableDeclarationList(this.declarations);
+
+  accept(NodeVisitor visitor) => visitor.visitVariableDeclarationList(this);
+  void visitChildren(NodeVisitor visitor) {
+    for (Init init in declarations) init.accept(visitor);
+  }
+}
+
+class Init extends Node {
+  Decl decl;
+  Expression value;  // May be null.
+  Init(this.decl, this.value);
+
+  accept(NodeVisitor visitor) => visitor.visitInit(this);
+  void visitChildren(NodeVisitor visitor) {
+    decl.accept(visitor);
+    if (value !== null) value.accept(visitor);
+  }
 }
 
 class Sequence extends Expression {

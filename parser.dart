@@ -101,7 +101,6 @@ class Parser {
   Statement parseStatement() {
     switch (peekTokenType()) {
       case "LBRACE": return parseBlock();
-      case "VAR": return parseVariableDeclarationList(inForInit: false);
       case "SEMICOLON": return parseEmptyStatement();
       case "IF": return parseIf();
       case "FOR": return parseFor();
@@ -122,6 +121,7 @@ class Parser {
       case "ID": return parseLabeledOrExpression();
       default:
         // Errors will be handled in the expression parser.
+        // Var declaration lists are handled by the expression statements too.
         return parseExpressionStatement();
     }
   }
@@ -135,40 +135,6 @@ class Parser {
     }
     consumeAny();
     return new Block(statements);
-  }
-
-  VariableDeclarationList parseVariableDeclarationList([bool inForInit]) {
-    assert(inForInit !== null);
-    consume("VAR");
-    List<Init> declarations = <Init>[parseVar(inForInit)];
-    while (true) {
-      switch (peekTokenType()) {
-        case "SEMICOLON":
-          if (!inForInit) consumeAny();
-          return new VariableDeclarationList(declarations);
-        case "COMMA":
-          consumeAny();
-          declarations.add(parseVar(inForInit));
-          break;
-        case "IN":
-          if (!inForInit) error("bad token: ", "in", peekToken());
-          return new VariableDeclarationList(declarations);
-        default:
-          if (!inForInit && (isAtNewLineToken() || peekTokenType() == "EOF")) {
-            return new VariableDeclarationList(declarations);
-          }
-          unexpectedToken(consumeAny());
-      }
-    }
-  }
-
-  Init parseVar(bool inForInit) {
-    String id = consume("ID");
-    if (peekTokenType() == "=") {
-      consumeAny();
-      return new Init(new Decl(id), parseAssignExpression(inForInit));
-    }
-    return new Init(new Decl(id), null);
   }
 
   NOP parseEmptyStatement() {
@@ -197,16 +163,9 @@ class Parser {
     consume("FOR");
     consume("LPAREN");
 
-    Statement firstPart;
-    switch (peekTokenType()) {
-      case "VAR":
-        firstPart = parseVariableDeclarationList(inForInit: true);
-        break;
-      case "SEMICOLON":
-        firstPart = new NOP();
-        break;
-      default:
-        firstPart = new ExpressionStatement(parseExpression(true));
+    Expression firstPart;
+    if (peekTokenType() != "SEMICOLON") {
+      firstPart = parseVarExpression(true);
     }
 
     switch (peekTokenType()) {
@@ -217,12 +176,10 @@ class Parser {
   }
 
   // for (init; test; incr) body;
-  For parseForInitTestIncr(Statement init) {
+  For parseForInitTestIncr(Expression init) {
     consume("SEMICOLON");
-    Expression test;
-    if (peekTokenType() == "SEMICOLON") {
-      test = new BoolLiteral("true");
-    } else {
+    Expression test = null;
+    if (peekTokenType() != "SEMICOLON") {
       test = parseExpression(false);
     }
     consume("SEMICOLON");
@@ -237,7 +194,7 @@ class Parser {
     return new For(init, test, incr, body);
   }
 
-  ForIn parseForIn(Statement firstPart) {
+  ForIn parseForIn(Expression firstPart) {
     Token errorToken = peekToken();
     consume("IN");
     Expression obj = parseExpression(false);
@@ -254,6 +211,7 @@ class Parser {
     } else if (firstPart is Ref || firstPart is Access) {
       return new ForIn(firstPart, obj, body);
     } else
+      print(firstPart);
       error("Bad left-hand side in 'for-in' loop construct",
             firstPart,
             errorToken);
@@ -446,7 +404,7 @@ class Parser {
   }
 
   Statement parseExpressionStatement() {
-    Expression expr = parseExpression(false);
+    Expression expr = parseVarExpression(false);
     consumeStatementSemicolon();
     return new ExpressionStatement(expr);
   }
@@ -488,6 +446,46 @@ class Parser {
     }
     consume("RPAREN");
     return result;
+  }
+
+  /** Also parses var-declarations. */
+  Expression parseVarExpression(bool inForInit) {
+    if (peekTokenType() == "VAR") {
+      return parseVariableDeclarationList(inForInit);
+    }
+    return parseExpression(inForInit);
+  }
+
+  VariableDeclarationList parseVariableDeclarationList(bool inForInit) {
+    consume("VAR");
+    List<Init> declarations = <Init>[parseVar(inForInit)];
+    while (true) {
+      switch (peekTokenType()) {
+        case "SEMICOLON":
+          return new VariableDeclarationList(declarations);
+        case "COMMA":
+          consumeAny();
+          declarations.add(parseVar(inForInit));
+          break;
+        case "IN":
+          if (!inForInit) error("bad token: ", "in", peekToken());
+          return new VariableDeclarationList(declarations);
+        default:
+          if (!inForInit && (isAtNewLineToken() || peekTokenType() == "EOF")) {
+            return new VariableDeclarationList(declarations);
+          }
+          unexpectedToken(consumeAny());
+      }
+    }
+  }
+
+  Init parseVar(bool inForInit) {
+    String id = consume("ID");
+    if (peekTokenType() == "=") {
+      consumeAny();
+      return new Init(new Decl(id), parseAssignExpression(inForInit));
+    }
+    return new Init(new Decl(id), null);
   }
 
   Expression parseExpression(bool inForInit) => parseSequence(inForInit);

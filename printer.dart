@@ -56,12 +56,6 @@ class Printer implements NodeVisitor {
     outIndentLn("}");
   }
 
-  visitVariableDeclarationList(VariableDeclarationList list) {
-    outIndent("var ");
-    visitInterleaved(list.declarations, ", ");
-    outLn(";");
-  }
-
   visitExpressionStatement(ExpressionStatement expressionStatement) {
     indent();
     visit(expressionStatement.expr);
@@ -103,29 +97,62 @@ class Printer implements NodeVisitor {
   }
 
   visitFor(For loop) {
-    outIndentLn("for (");
-    indentLevel++;
-    visit(loop.init);
-    indent();
-    visit(loop.test);
-    out(";");
-    if (loop.incr !== null) {
-      out("\n");
-      indent();
-      visit(loop.incr);
-    }
-    indentLevel--;
+    outIndent("for (");
+    if (loop.init !== null) visit(loop.init);
+    out("; ");
+    if (loop.test !== null) visit(loop.test);
+    out("; ");
+    if (loop.incr !== null) visit(loop.incr);
     outLn(")");
-    visit(loop.body);
+    if (loop.body is Block) {
+      visit(loop.body);
+    } else {
+      indentLevel++;
+      visit(loop.body);
+      indentLevel--;
+    }
   }
 
   visitForIn(ForIn loop) {
+    outIndent("for (");
+    visit(loop.lhs);
+    out(" in ");
+    visit(loop.obj);
+    outLn(")");
+    if (loop.body is Block) {
+      visit(loop.body);
+    } else {
+      indentLevel++;
+      visit(loop.body);
+      indentLevel--;
+    }
   }
 
   visitWhile(While loop) {
+    outIndent("while (");
+    visit(loop.test);
+    outLn(")");
+    if (loop.body is Block) {
+      visit(loop.body);
+    } else {
+      indentLevel++;
+      visit(loop.body);
+      indentLevel--;
+    }
   }
 
   visitDo(Do loop) {
+    outIndentLn("do");
+    if (loop.body is Block) {
+      visit(loop.body);
+    } else {
+      indentLevel++;
+      visit(loop.body);
+      indentLevel--;
+    }
+    outIndent("while (");
+    visit(loop.test);
+    outLn(");");
   }
 
   visitContinue(Continue cont) {
@@ -211,6 +238,11 @@ class Printer implements NodeVisitor {
     visitInterleaved(declaration.fun.params, ", ");
     outLn(")");
     visit(declaration.fun.body);
+  }
+
+  visitVariableDeclarationList(VariableDeclarationList list) {
+    out("var ");
+    visitInterleaved(list.declarations, ", ");
   }
 
   visitSequence(Sequence sequence) {
