@@ -16,24 +16,31 @@
 
 #import("dart:io");
 #import("lexer.dart");
+#import("nodes.dart");
 #import("parser.dart");
 #import("printer.dart");
+#import("resolver.dart");
+#import("var.dart");
 
 void main() {
   List<String> args = new Options().arguments;
-  if (args.length != 1) {
+  bool printResolution = (args.length == 2 && args[0] == "--print-resolution");
+  if (args.length != 1 && !printResolution) {
     printUsage();
     return;
   }
-  File file = new File(args[0]);
+  File file = new File(args[printResolution ? 1 : 0]);
   file.readAsText().then((String content) {
     Parser parser = new Parser(new Lexer(content));
-    Printer printer = new Printer();
-    printer.visit(parser.parseProgram());
+    Program program = parser.parseProgram();
+    Map<Node, Var> resolution = resolve(program);
+    Printer printer =
+        printResolution ? new ResolverPrinter(resolution) : new Printer();
+    printer.visit(program);
     print(printer.outBuffer);
   });
 }
 
 void printUsage() {
-  print("Usage: dart jsparser.dart <file.js>");
+  print("Usage: dart jsparser.dart [--print-resolution] <file.js>");
 }
