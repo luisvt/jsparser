@@ -92,7 +92,7 @@ class BaseVisitor<T> implements NodeVisitor {
   T visitExpressionStatement(ExpressionStatement node)
       => visitStatement(node);
   T visitNOP(NOP node) => visitStatement(node);
-  T visitIf(If node) => visitIf(node);
+  T visitIf(If node) => visitStatement(node);
   T visitFor(For node) => visitLoop(node);
   T visitForIn(ForIn node) => visitLoop(node);
   T visitWhile(While node) => visitLoop(node);
@@ -170,7 +170,9 @@ class Program extends Node {
   Program(this.body);
 
   accept(NodeVisitor visitor) => visitor.visitProgram(this);
-  void visitChildren(NodeVisitor visitor) {}
+  void visitChildren(NodeVisitor visitor) {
+    for (Statement statement in body) statement.accept(visitor);
+  }
 }
 
 abstract class Statement extends Node {
