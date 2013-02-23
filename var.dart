@@ -12,30 +12,72 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#library("var");
+library variable;
 
-class Var implements Hashable {
-  static int varCounter = 0;
-
-  final int varId;
+class Var {
   final String id;
   final bool isGlobal;
-  bool isImplicit;
-  bool isParam;
-  Var(this.id, [this.isGlobal = false,
-                this.isImplicit = false,
-                this.isParam = false])
-      : varId = (varCounter++ & 0x7FFFFFFF);
+  final bool isImplicit;
+  final bool isParam;
 
-  bool get isThis() => id == "this";
+  const Var(this.id, {isGlobal: false,
+                isImplicit: false,
+                isParam: false})
+      : this.isGlobal = isGlobal,
+        this.isImplicit = isImplicit,
+        this.isParam = isParam;
 
-  int hashCode() => varId;
+  bool get isThis => id == "this";
+  bool get isOperator => false;
 }
 
+const PREFIX_PLUS = const Operator("prefix+");
+const PREFIX_MINUS = const Operator("prefix-");
+const PREFIX_PLUS_PLUS = const Operator("prefix++");
+const PREFIX_MINUS_MINUS = const Operator("prefix--");
+
+const OPERATORS = const [
+    PREFIX_PLUS,
+    PREFIX_MINUS,
+    PREFIX_PLUS_PLUS,
+    PREFIX_MINUS_MINUS,
+    const Operator("delete"),
+    const Operator("void"),
+    const Operator("typeof"),
+    const Operator("||"),
+    const Operator("&&"),
+    const Operator("|"),
+    const Operator("^"),
+    const Operator("&"),
+    const Operator("=="),
+    const Operator("!="),
+    const Operator("==="),
+    const Operator("!=="),
+    const Operator("<"),
+    const Operator(">"),
+    const Operator("<="),
+    const Operator(">="),
+    const Operator("instanceof"),
+    const Operator("in"),
+    const Operator("<<"),
+    const Operator(">>"),
+    const Operator(">>>"),
+    const Operator("+"),
+    const Operator("-"),
+    const Operator("*"),
+    const Operator("/"),
+    const Operator("%"),
+];
+
+class Operator extends Var {
+  const Operator(String id) : super(id, isGlobal: true);
+
+  bool get isOperator => true;
+}
 
 // Note that Interceptors may live in the top-level.
 class Interceptor extends Var {
   Var intercepted;
-  Dynamic reason;
+  dynamic reason;
   Interceptor(String id, this.intercepted, this.reason) : super(id);
 }

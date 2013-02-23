@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#library("parser");
-#import("lexer.dart");
-#import("nodes.dart");
+library parser;
+import "lexer.dart";
+import "nodes.dart";
 
 class Parser {
   final Lexer lexer;
@@ -33,7 +33,7 @@ class Parser {
   }
 
   Token peekToken() {
-    if (peekedTokens.isEmpty()) {
+    if (peekedTokens.isEmpty) {
       Token nextToken;
       while (true) {
         nextToken = lexer.next();
@@ -45,7 +45,7 @@ class Parser {
       }
       peekedTokens.add(nextToken);
     }
-    return peekedTokens.last();
+    return peekedTokens.last;
   }
 
   void pushBackToken(Token token) {
@@ -58,7 +58,7 @@ class Parser {
 
   // TODO(floitsch): this returns a value instead of the token. Inconsistent
   // with [consumeAny].
-  Dynamic consume(String type) {
+  dynamic consume(String type) {
     Token token = consumeAny();
     if (token.type == type) return token.value;
     print("Expected: $type");
@@ -137,9 +137,9 @@ class Parser {
     return new Block(statements);
   }
 
-  NOP parseEmptyStatement() {
+  EmptyStatement parseEmptyStatement() {
     consume("SEMICOLON");
-    return new NOP();
+    return new EmptyStatement();
   }
 
   If parseIf() {
@@ -153,7 +153,7 @@ class Parser {
       consumeAny();
       otherwise = parseStatement();
     } else {
-      otherwise = new NOP();
+      otherwise = new EmptyStatement();
     }
     return new If(test, then, otherwise);
   }
@@ -204,14 +204,15 @@ class Parser {
       VariableDeclarationList varDecl = firstPart;
       if (varDecl.declarations.length != 1) {
         error("Only one variable allowed in 'for-in' statement",
-              varDecl.declarations[1].decl.id,
+              varDecl.declarations[1].declaration.name,
               errorToken);
       }
       return new ForIn(firstPart, obj, body);
-    } else if (firstPart is Ref || firstPart is Access) {
+    } else if (firstPart is VariableUse || firstPart is PropertyAccess) {
       return new ForIn(firstPart, obj, body);
-    } else
+    } else {
       print(firstPart);
+    }
       error("Bad left-hand side in 'for-in' loop construct",
             firstPart,
             errorToken);
@@ -265,13 +266,13 @@ class Parser {
     consume("RETURN");
     Expression value;
     if (isAtNewLineToken()) {
-      value = new UndefinedLiteral();
+      value = new LiteralUndefined();
     } else {
       switch (peekTokenType()) {
         case "EOF":
         case "ERROR":
         case "SEMICOLON":
-          value = new UndefinedLiteral();
+          value = new LiteralUndefined();
           break;
         default:
           value = parseExpression(false);
@@ -313,6 +314,7 @@ class Parser {
             error("Only one default-clause allowed", peekToken(), peekToken());
           }
           clauses.add(parseDefaultClause());
+          break;
       }
     }
     consume("RBRACE");
@@ -371,7 +373,7 @@ class Parser {
     if (peekTokenType() == "FINALLY") {
       finallyPart = parseFinally();
     }
-    if (catchPart === null && finallyPart === null) {
+    if (catchPart == null && finallyPart == null) {
       error("Try without catch and finally", null, errorToken);
     }
     return new Try(body, catchPart, finallyPart);
@@ -383,7 +385,7 @@ class Parser {
     String id = consume("ID");
     consume("RPAREN");
     Block body = parseBlock();
-    return new Catch(new Param(id), body);
+    return new Catch(new Parameter(id), body);
   }
 
   Block parseFinally() {
@@ -409,10 +411,10 @@ class Parser {
     return new ExpressionStatement(expr);
   }
 
-  Labeled parseLabeled() {
+  LabeledStatement parseLabeled() {
     String id = consume("ID");
     consume(":");
-    return new Labeled(id, parseStatement());
+    return new LabeledStatement(id, parseStatement());
   }
 
   FunctionDeclaration parseFunctionDeclaration() => parseFunction(true);
@@ -423,24 +425,24 @@ class Parser {
     consume("FUNCTION");
     String id = null;
     if (isDeclaration || peekTokenType() == "ID") id = consume("ID");
-    List<Param> params = parseParameters();
+    List<Parameter> params = parseParameters();
     // According to the spec we cannot just parse a body, but must
     Block body = parseBlock();
     Fun fun = new Fun(params, body);
-    if (isDeclaration) return new FunctionDeclaration(new Decl(id), fun);
-    if (id !== null) return new NamedFunction(new Decl(id), fun);
+    if (isDeclaration) return new FunctionDeclaration(new VariableDeclaration(id), fun);
+    if (id != null) return new NamedFunction(new VariableDeclaration(id), fun);
     return fun;
   }
 
-  List<Param> parseParameters() {
-    List<Param> result = <Param>[];
+  List<Parameter> parseParameters() {
+    List<Parameter> result = <Parameter>[];
     consume("LPAREN");
     if (peekTokenType() == "RPAREN") {
       consumeAny();
       return result;
     }
     while(true) {
-      result.add(new Param(consume("ID")));
+      result.add(new Parameter(consume("ID")));
       if (peekTokenType() != "COMMA") break;
       consumeAny();
     }
@@ -458,7 +460,7 @@ class Parser {
 
   VariableDeclarationList parseVariableDeclarationList(bool inForInit) {
     consume("VAR");
-    List<Init> declarations = <Init>[parseVar(inForInit)];
+    List<VariableInitialization> declarations = <VariableInitialization>[parseVar(inForInit)];
     while (true) {
       switch (peekTokenType()) {
         case "SEMICOLON":
@@ -479,13 +481,13 @@ class Parser {
     }
   }
 
-  Init parseVar(bool inForInit) {
+  VariableInitialization parseVar(bool inForInit) {
     String id = consume("ID");
     if (peekTokenType() == "=") {
       consumeAny();
-      return new Init(new Decl(id), parseAssignExpression(inForInit));
+      return new VariableInitialization(new VariableDeclaration(id), parseAssignExpression(inForInit));
     }
-    return new Init(new Decl(id), null);
+    return new VariableInitialization(new VariableDeclaration(id), null);
   }
 
   Expression parseExpression(bool inForInit) => parseSequence(inForInit);
@@ -525,16 +527,16 @@ class Parser {
     if (!isAssignOperator(peekTokenType())) return expr;
     String op = consumeAny().value;
     Expression rhs = parseAssignExpression(inForInit);
-    if ((op == "=") && expr is Access) return new Accsign(expr, rhs);
-    if ((op == "=") && expr is Ref) return new Vassign(expr, rhs);
+    if ((op == "=") && expr is PropertyAccess) return new Assignment(expr, rhs);
+    if ((op == "=") && expr is VariableUse) return new Assignment(expr, rhs);
     if (op == "=") error("bad assignment", null, errorToken);
-    if (expr is Access) {
+    if (expr is PropertyAccess) {
       op = removeEquals(op);
-      return new AccsignOp(expr, new Ref.operator(op), rhs);
+      return new Assignment.compound(expr, op, rhs);
     }
-    if (expr is Ref) {
+    if (expr is VariableUse) {
       op = removeEquals(op);
-      return new VassignOp(expr, new Ref.operator(op), rhs);
+      return new Assignment.compound(expr, op, rhs);
     }
     error("bad assignment", null, errorToken);
   }
@@ -587,11 +589,11 @@ class Parser {
         String type = peekTokenType();
         if (inForInit && type == "IN") return expr;
         int newLevel = operatorLevel(type);
-        if (newLevel === null) return expr;
+        if (newLevel == null) return expr;
         if (newLevel != level) return expr;
         String op = consumeAny().value;
         Expression other = parseBinaryExpressionOfLevel(level + 1);
-        expr = new Binary(new Ref.operator(op), <Expression>[expr, other]);
+        expr = new Binary(op, expr, other);
       }
     }
 
@@ -605,16 +607,16 @@ class Parser {
       case "TYPEOF":
       case "~":
       case "!":
+        String op = consumeAny().value;
+        Expression expr = parseUnary();
+        return new Prefix(op, expr);
       case "++":
       case "--":
-        Ref op = new Ref.operator(consumeAny().value);
-        Expression expr = parseUnary();
-        return new Unary(op, <Expression>[expr]);
       case "+":
       case "-":
-        Ref op = new Ref.unaryOperator(consumeAny().value);
+        String op = "prefix${consumeAny().value}";
         Expression expr = parseUnary();
-        return new Unary(op, <Expression>[expr]);
+        return new Prefix(op, expr);
       default:
         return parsePostfix();
     }
@@ -624,8 +626,8 @@ class Parser {
     Expression lhs = parseLeftHandSide();
     if (!isAtNewLineToken() &&
         (peekTokenType() == "++" || peekTokenType() == "--")) {
-      Ref op = new Ref.operator(consumeAny().value);
-      return new Postfix(op, <Expression>[lhs]);
+      String op = consumeAny().value;
+      return new Postfix(op, lhs);
     }
     return lhs;
   }
@@ -665,13 +667,13 @@ class Parser {
           consumeAny();
           Expression field = parseExpression(false);
           consume("RBRACKET");
-          expr = new Access(expr, field);
+          expr = new PropertyAccess(expr, field);
           break;
         case "DOT":
           consumeAny();
           String field = parseFieldName();
           // Transform o.x into o["x"].
-          expr = new Access(expr, new StringLiteral('"$field"'));
+          expr = new PropertyAccess(expr, new LiteralString('"$field"'));
           break;
         case "LPAREN":
           if (callsAreAllowed) {
@@ -710,7 +712,7 @@ class Parser {
         consumeAny();
         return new This();
       case "ID":
-        return new Ref(consume("ID"));
+        return new VariableUse(consume("ID"));
       case "LPAREN":
         consumeAny();
         Expression expr = parseExpression(false);
@@ -722,14 +724,14 @@ class Parser {
         return parseObjectLiteral();
       case "NULL":
         consumeAny();
-        return new NullLiteral();
+        return new LiteralNull();
       case "TRUE":
       case "FALSE":
-        return new BoolLiteral(consumeAny().value == "true");
+        return new LiteralBool(consumeAny().value == "true");
       case "NUMBER":
-        return new NumberLiteral(consumeAny().value);  // Stays a string.
+        return new LiteralNumber(consumeAny().value);  // Stays a string.
       case "STRING":
-        return new StringLiteral(consumeAny().value);  // Still with quotes.
+        return new LiteralString(consumeAny().value);  // Still with quotes.
       case "/":
       case "/=":
         return parseRegExpLiteral();
@@ -738,7 +740,7 @@ class Parser {
     }
   }
 
-  ArrayLiteral parseArrayLiteral() {
+  ArrayInitializer parseArrayLiteral() {
     // Basically: every array-element finishes with ",".
     //   However, the very last one can be avoided if the array-element is not
     //   an ellision.
@@ -752,7 +754,7 @@ class Parser {
       switch (peekTokenType()) {
         case "RBRACKET":
           consumeAny();
-          return new ArrayLiteral(length, elements);
+          return new ArrayInitializer(length, elements);
         case "COMMA":
           consumeAny();
           length++;
@@ -767,39 +769,39 @@ class Parser {
     }
   }
 
-  ObjectLiteral parseObjectLiteral() {
+  ObjectInitializer parseObjectLiteral() {
     Literal parsePropertyName() {
       switch (peekTokenType()) {
         case "ID":
           // For simplicity transform the identifier into a string.
           // Example: foo -> "foo".
           String id = consume("ID");
-          return new StringLiteral('"$id"');
+          return new LiteralString('"$id"');
         case "STRING":
-          return new StringLiteral(consume("STRING"));
+          return new LiteralString(consume("STRING"));
         case "NUMBER":
-          return new NumberLiteral(consume("NUMBER"));
+          return new LiteralNumber(consume("NUMBER"));
         default:
           // TODO(floitsch): allow reserved identifiers as field names.
           unexpectedToken(consumeAny());
       }
     }
 
-    PropertyInit parsePropertyInit() {
+    Property parsePropertyInit() {
       Literal name = parsePropertyName();
       consume(":");
       Expression value = parseAssignExpression(false);
-      return new PropertyInit(name, value);
+      return new Property(name, value);
     }
 
     consume("LBRACE");
-    List<PropertyInit> properties = <PropertyInit>[];
+    List<Property> properties = <Property>[];
     while (peekTokenType() != "RBRACE") {
-      if (!properties.isEmpty()) consume("COMMA");
+      if (!properties.isEmpty) consume("COMMA");
       properties.add(parsePropertyInit());
     }
     consumeAny();  // The "RBRACE";
-    return new ObjectLiteral(properties);
+    return new ObjectInitializer(properties);
   }
 
   RegExpLiteral parseRegExpLiteral() {

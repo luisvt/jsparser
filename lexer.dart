@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#library("lexer");
+library lexer;
 
 final List<String> KEYWORDS = const <String>[
     "as", "break", "case", "catch", "class", "const", "continue", "default",
@@ -26,8 +26,8 @@ final List<String> FUTURE_RESERVED = const <String>[
     "native", "protected", "synchronized", "throws", "transient", "volatile"];
 
 Set<String> _keywordSet = null;
-Set<String> get keywordSet() {
-  if (_keywordSet === null) {
+Set<String> get keywordSet {
+  if (_keywordSet == null) {
     _keywordSet = new Set<String>();
     for (String keyword in KEYWORDS) _keywordSet.add(keyword);
   }
@@ -35,8 +35,8 @@ Set<String> get keywordSet() {
 }
 
 Set<String> _futureReservedSet = null;
-Set<String> get futureReservedSet() {
-  if (_futureReservedSet === null) {
+Set<String> get futureReservedSet {
+  if (_futureReservedSet == null) {
     _futureReservedSet = new Set<String>();
     for (String reserved in FUTURE_RESERVED) _futureReservedSet.add(reserved);
   }
@@ -86,11 +86,11 @@ class Lexer {
       => isInStringSet(c, BLANKS_NO_LINE_TERMINATORS);
   bool isIdStart(String c) {
     if (c == "\$" || c == "_") return true;
-    int $a = "a".charCodeAt(0);
-    int $z = "z".charCodeAt(0);
-    int $A = "A".charCodeAt(0);
-    int $Z = "Z".charCodeAt(0);
-    int cValue = c.charCodeAt(0);
+    int $a = "a".codeUnitAt(0);
+    int $z = "z".codeUnitAt(0);
+    int $A = "A".codeUnitAt(0);
+    int $Z = "Z".codeUnitAt(0);
+    int cValue = c.codeUnitAt(0);
     return ($a <= cValue && cValue <= $z ||
             $A <= cValue && cValue <= $Z);
   }
@@ -178,7 +178,7 @@ class Lexer {
     while (charsLeft()) {
       String c = input[position++];
       if (c == "/" && sawStar) return lineTerminatorPosition;
-      if (lineTerminatorPosition === null && isLineTerminator(c)) {
+      if (lineTerminatorPosition == null && isLineTerminator(c)) {
         lineTerminatorPosition = position - 1;
       }
       sawStar =  (c == "*");
@@ -228,7 +228,7 @@ class Lexer {
   }
 
 
-  Token get eofToken() => new Token("EOF", input.length);
+  Token get eofToken => new Token("EOF", input.length);
   Token consumeSymbolToken(String symbol) {
     int len = symbol.length;
     int pos = position;
@@ -245,7 +245,7 @@ class Lexer {
     if (pointsTo("/*")) {
       // Make sure we don't skip line terminators;
       int lineTerminatorPosition = eatMultiLineComment();
-      if (lineTerminatorPosition !== null) {
+      if (lineTerminatorPosition != null) {
         return new Token("NEW_LINE", lineTerminatorPosition);
       }
     }

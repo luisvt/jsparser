@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#library("jsdart");
+library jsdart;
 
-#import("dart:io");
-#import("lexer.dart");
-#import("nodes.dart");
-#import("parser.dart");
-#import("printer.dart");
-#import("resolver.dart");
-#import("var.dart");
+import "dart:io";
+import "lexer.dart";
+import "nodes.dart";
+import "parser.dart";
+import "printer.dart";
+import "resolver.dart";
+import "var.dart";
 
 void main() {
   List<String> args = new Options().arguments;
@@ -30,7 +30,7 @@ void main() {
     return;
   }
   File file = new File(args[printResolution ? 1 : 0]);
-  file.readAsText().then((String content) {
+  file.readAsString().then((String content) {
     Parser parser = new Parser(new Lexer(content));
     Program program = parser.parseProgram();
     Map<Node, Var> resolution = resolve(program);

@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#library("printer");
-#import("nodes.dart");
+library printer;
+import "nodes.dart";
 
 class Printer implements NodeVisitor {
   StringBuffer outBuffer;
   int indentLevel = 0;
 
-  void out(String str) { outBuffer.add(str); }
-  void outLn(String str) { outBuffer.add(str); outBuffer.add("\n"); }
+  void out(String str) { outBuffer.write(str); }
+  void outLn(String str) { outBuffer.write(str); outBuffer.write("\n"); }
   void outIndent(String str) { indent(); out(str); }
   void outIndentLn(String str) { indent(); outLn(str); }
   void indent() {
@@ -51,32 +51,24 @@ class Printer implements NodeVisitor {
   visitBlock(Block block) {
     outIndentLn("{");
     indentLevel++;
-    visitAll(block.elements);
+    visitAll(block.statements);
     indentLevel--;
     outIndentLn("}");
   }
 
   visitExpressionStatement(ExpressionStatement expressionStatement) {
     indent();
-    visit(expressionStatement.expr);
+    visit(expressionStatement.expression);
     outLn(";");
   }
 
-  visitInit(Init init) {
-    visit(init.decl);
-    if (init.value !== null) {
-      out(" = ");
-      visit(init.value);
-    }
-  }
-
-  visitNOP(NOP nop) {
+  visitEmptyStatement(EmptyStatement nop) {
     outIndentLn(";");
   }
 
   visitIf(If node) {
     outIndent("if (");
-    visit(node.test);
+    visit(node.condition);
     out(")");
     // Visit dangling else problem.
     if (node.hasElse && node.then is If) {
@@ -98,11 +90,11 @@ class Printer implements NodeVisitor {
 
   visitFor(For loop) {
     outIndent("for (");
-    if (loop.init !== null) visit(loop.init);
+    if (loop.init != null) visit(loop.init);
     out("; ");
-    if (loop.test !== null) visit(loop.test);
+    if (loop.condition != null) visit(loop.condition);
     out("; ");
-    if (loop.incr !== null) visit(loop.incr);
+    if (loop.update != null) visit(loop.update);
     outLn(")");
     if (loop.body is Block) {
       visit(loop.body);
@@ -115,9 +107,9 @@ class Printer implements NodeVisitor {
 
   visitForIn(ForIn loop) {
     outIndent("for (");
-    visit(loop.lhs);
+    visit(loop.leftHandSide);
     out(" in ");
-    visit(loop.obj);
+    visit(loop.object);
     outLn(")");
     if (loop.body is Block) {
       visit(loop.body);
@@ -130,7 +122,7 @@ class Printer implements NodeVisitor {
 
   visitWhile(While loop) {
     outIndent("while (");
-    visit(loop.test);
+    visit(loop.condition);
     outLn(")");
     if (loop.body is Block) {
       visit(loop.body);
@@ -151,7 +143,7 @@ class Printer implements NodeVisitor {
       indentLevel--;
     }
     outIndent("while (");
-    visit(loop.test);
+    visit(loop.condition);
     outLn(");");
   }
 
@@ -165,23 +157,23 @@ class Printer implements NodeVisitor {
 
   visitReturn(Return node) {
     outIndent("return ");
-    visit(node.expr);
+    visit(node.value);
     outLn(";");
   }
 
   visitThrow(Throw node) {
     outIndent("throw ");
-    visit(node.expr);
+    visit(node.expression);
     outLn(";");
   }
 
   visitTry(Try node) {
     outIndentLn("try");
     visit(node.body);
-    if (node.catchPart !== null) {
+    if (node.catchPart != null) {
       visit(node.catchPart);
     }
-    if (node.finallyPart !== null) {
+    if (node.finallyPart != null) {
       outIndentLn("finally");
       visit(node.finallyPart);
     }
@@ -189,7 +181,7 @@ class Printer implements NodeVisitor {
 
   visitCatch(Catch node) {
     outIndent("catch (");
-    visit(node.decl);
+    visit(node.declaration);
     outLn(")");
     visit(node.body);
   }
@@ -212,32 +204,32 @@ class Printer implements NodeVisitor {
 
   visitCase(Case node) {
     outIndent("case ");
-    visit(node.expr);
+    visit(node.expression);
     outLn(":");
-    if (!node.body.elements.isEmpty()) {
+    if (!node.body.statements.isEmpty) {
       visit(node.body);
     }
   }
 
   visitDefault(Default node) {
     outIndentLn("default:");
-    if (!node.body.elements.isEmpty()) {
+    if (!node.body.statements.isEmpty) {
       visit(node.body);
     }
   }
 
-  visitLabeled(Labeled node) {
-    outIndentLn("${node.id}:");
+  visitLabeledStatement(LabeledStatement node) {
+    outIndentLn("${node.label}:");
     visit(node.body);
   }
 
   visitFunctionDeclaration(FunctionDeclaration declaration) {
     outIndent("function ");
-    visit(declaration.id);
+    visit(declaration.name);
     out("(");
-    visitInterleaved(declaration.fun.params, ", ");
+    visitInterleaved(declaration.function.params, ", ");
     outLn(")");
-    visit(declaration.fun.body);
+    visit(declaration.function.body);
   }
 
   visitVariableDeclarationList(VariableDeclarationList list) {
@@ -251,41 +243,28 @@ class Printer implements NodeVisitor {
     out(")");
   }
 
-  visitVassign(Vassign vassign) {
+  visitAssignment(Assignment node) {
     out("(");
-    visit(vassign.lhs);
-    out("=");
-    visit(vassign.val);
+    visit(node.leftHandSide);
+    if (node.isCompound) {
+      out(node.op);
+      out("=");
+    }
+    visit(node.value);
     out(")");
   }
 
-  visitAccsign(Accsign accsign) {
-    out("(");
-    visit(accsign.lhs);
-    out("=");
-    visit(accsign.val);
-    out(")");
-  }
-
-  visitVassignOp(VassignOp vassignOp) {
-    out("(");
-    visit(vassignOp.lhs);
-    visit(vassignOp.op);
-    visit(vassignOp.val);
-    out(")");
-  }
-
-  visitAccsignOp(AccsignOp accsignOp) {
-    out("(");
-    visit(accsignOp.lhs);
-    visit(accsignOp.op);
-    visit(accsignOp.val);
-    out(")");
+  visitVariableInitialization(VariableInitialization init) {
+    visit(init.declaration);
+    if (init.value != null) {
+      out(" = ");
+      visit(init.value);
+    }
   }
 
   visitConditional(Conditional cond) {
     out("(");
-    visit(cond.test);
+    visit(cond.condition);
     out(" ? ");
     visit(cond.then);
     out(" : ");
@@ -295,7 +274,7 @@ class Printer implements NodeVisitor {
 
   visitNew(New node) {
     out("(new ");
-    visit(node.cls);
+    visit(node.target);
     out("(");
     visitInterleaved(node.arguments, ", ");
     out("))");
@@ -317,7 +296,7 @@ class Printer implements NodeVisitor {
     out(")");
   }
 
-  visitUnary(Unary unary) {
+  visitPrefix(Prefix unary) {
     out("(");
     visit(unary.target);
     visit(unary.arguments[0]);
@@ -331,23 +310,23 @@ class Printer implements NodeVisitor {
     out(")");
   }
 
-  visitRef(Ref ref) {
-    out(ref.id);
+  visitVariableUse(VariableUse ref) {
+    out(ref.name);
   }
 
   visitThis(This node) {
     out("this");
   }
 
-  visitDecl(Decl decl) {
-    out(decl.id);
+  visitVariableDeclaration(VariableDeclaration decl) {
+    out(decl.name);
   }
 
-  visitParam(Param param) {
-    out(param.id);
+  visitParameter(Parameter param) {
+    out(param.name);
   }
 
-  visitAccess(Access access) {
+  visitPropertyAccess(PropertyAccess access) {
     visit(access.receiver);
     out("[");
     visit(access.selector);
@@ -356,11 +335,11 @@ class Printer implements NodeVisitor {
 
   visitNamedFunction(NamedFunction namedFunction) {
     out("(function ");
-    visit(namedFunction.id);
+    visit(namedFunction.name);
     out("(");
-    visitInterleaved(namedFunction.fun.params, ", ");
+    visitInterleaved(namedFunction.function.params, ", ");
     outLn(")");
-    visit(namedFunction.fun.body);
+    visit(namedFunction.function.body);
     out(")");
   }
 
@@ -372,27 +351,27 @@ class Printer implements NodeVisitor {
     outIndent(")");
   }
 
-  visitBoolLiteral(BoolLiteral node) {
+  visitLiteralBool(LiteralBool node) {
     out(node.value ? "true" : "false");
   }
 
-  visitStringLiteral(StringLiteral node) {
+  visitLiteralString(LiteralString node) {
     out(node.value);
   }
 
-  visitNumberLiteral(NumberLiteral node) {
+  visitLiteralNumber(LiteralNumber node) {
     out(node.value);
   }
 
-  visitNullLiteral(NullLiteral node) {
+  visitLiteralNull(LiteralNull node) {
     out("null");
   }
 
-  visitUndefinedLiteral(UndefinedLiteral node) {
+  visitLiteralUndefined(LiteralUndefined node) {
     out("(void 0)");
   }
 
-  visitArrayLiteral(ArrayLiteral node) {
+  visitArrayInitializer(ArrayInitializer node) {
     out("[");
     List<ArrayElement> elements = node.elements;
     int elementIndex = 0;
@@ -413,13 +392,13 @@ class Printer implements NodeVisitor {
     throw "Unreachable";
   }
 
-  visitObjectLiteral(ObjectLiteral node) {
+  visitObjectInitializer(ObjectInitializer node) {
     out("({");
     visitInterleaved(node.properties, ", ");
     out("})");
   }
 
-  visitPropertyInit(PropertyInit node) {
+  visitProperty(Property node) {
     visit(node.name);
     out(": ");
     visit(node.value);
