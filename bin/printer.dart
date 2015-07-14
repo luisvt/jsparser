@@ -19,7 +19,9 @@ class Printer implements NodeVisitor {
   StringBuffer outBuffer;
   int indentLevel = 0;
 
-  void out(String str) { outBuffer.write(str); }
+  void out(String str) {
+    outBuffer.write(str);
+  }
   void outLn(String str) { outBuffer.write(str); outBuffer.write("\n"); }
   void outIndent(String str) { indent(); out(str); }
   void outIndentLn(String str) { indent(); outLn(str); }
@@ -44,16 +46,15 @@ class Printer implements NodeVisitor {
   }
 
   visitProgram(Program program) {
-    outLn("/* Program */");
     visitAll(program.body);
   }
 
   visitBlock(Block block) {
-    outIndentLn("{");
+    out("{\n");
     indentLevel++;
     visitAll(block.statements);
     indentLevel--;
-    outIndentLn("}");
+    outIndent("}");
   }
 
   visitExpressionStatement(ExpressionStatement expressionStatement) {
@@ -69,18 +70,17 @@ class Printer implements NodeVisitor {
   visitIf(If node) {
     outIndent("if (");
     visit(node.condition);
-    out(")");
+    out(") ");
     // Visit dangling else problem.
     if (node.hasElse && node.then is If) {
-      out(" {\n");
+      out("{\n");
       visit(node.then);
       outIndent("}");
     } else {
-      out("\n");
-      visit(node.then);
+      visitBlock(node.then);
     }
     if (node.hasElse) {
-      outIndent("else\n");
+      out(" else ");
       visit(node.otherwise);
       outLn("");
     } else {
@@ -224,11 +224,11 @@ class Printer implements NodeVisitor {
   }
 
   visitFunctionDeclaration(FunctionDeclaration declaration) {
-    outIndent("function ");
+//    outIndent("function ");
     visit(declaration.name);
     out("(");
     visitInterleaved(declaration.function.params, ", ");
-    outLn(")");
+    out(") ");
     visit(declaration.function.body);
   }
 
@@ -244,14 +244,14 @@ class Printer implements NodeVisitor {
   }
 
   visitAssignment(Assignment node) {
-    out("(");
+//    out("(");
     visit(node.leftHandSide);
     if (node.isCompound) {
       out(node.op);
-      out("=");
     }
+    out(" = ");
     visit(node.value);
-    out(")");
+//    out(")");
   }
 
   visitVariableInitialization(VariableInitialization init) {
@@ -273,19 +273,39 @@ class Printer implements NodeVisitor {
   }
 
   visitNew(New node) {
-    out("(new ");
+    out("new ");
     visit(node.target);
     out("(");
     visitInterleaved(node.arguments, ", ");
-    out("))");
+    out(")");
   }
 
   visitCall(Call call) {
-    out("(");
-    visit(call.target);
+
+    var target = call.target;
+    if(target is PropertyAccess) {
+      var receiver = target.receiver,
+          selector = target.selector;
+
+      if(receiver is VariableUse && receiver.name == "document"
+      && selector is LiteralString && selector.value == "getElementById") {
+        out('querySelector("#');
+        if(call.arguments[0] is LiteralString)
+          out((call.arguments[0].value as String).replaceAll('"', ''));
+        else {
+          out(r"$");
+          visit(call.arguments[0]);
+        }
+
+        out('")');
+        return;
+      }
+    }
+
+    visit(target);
     out("(");
     visitInterleaved(call.arguments, ", ");
-    out("))");
+    out(")");
   }
 
   visitBinary(Binary binary) {
@@ -328,13 +348,12 @@ class Printer implements NodeVisitor {
 
   visitPropertyAccess(PropertyAccess access) {
     visit(access.receiver);
-    out("[");
+    out(".");
     visit(access.selector);
-    out("]");
   }
 
   visitNamedFunction(NamedFunction namedFunction) {
-    out("(function ");
+    out("(");
     visit(namedFunction.name);
     out("(");
     visitInterleaved(namedFunction.function.params, ", ");
@@ -344,7 +363,7 @@ class Printer implements NodeVisitor {
   }
 
   visitFun(Fun fun) {
-    out("(function (");
+    out("((");
     visitInterleaved(fun.params, ", ");
     outLn(")");
     visit(fun.body);

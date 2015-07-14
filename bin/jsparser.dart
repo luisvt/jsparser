@@ -22,8 +22,7 @@ import "printer.dart";
 import "resolver.dart";
 import "var.dart";
 
-void main() {
-  List<String> args = new Options().arguments;
+void main(List<String> args) {
   bool printResolution = (args.length == 2 && args[0] == "--print-resolution");
   if (args.length != 1 && !printResolution) {
     printUsage();
@@ -34,8 +33,7 @@ void main() {
     Parser parser = new Parser(new Lexer(content));
     Program program = parser.parseProgram();
     Map<Node, Var> resolution = resolve(program);
-    Printer printer =
-        printResolution ? new ResolverPrinter(resolution) : new Printer();
+    Printer printer = printResolution ? new ResolverPrinter(resolution) : new Printer();
     printer.visit(program);
     print(printer.outBuffer);
   });

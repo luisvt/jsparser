@@ -644,6 +644,7 @@ class Parser {
 
   Expression parseNewExpression() {
     if (peekTokenType() != "NEW") {
+//      print(peekToken().value);
       return parseAccessOrCall(parsePrimary(), false);
     }
     consumeAny();
@@ -673,7 +674,7 @@ class Parser {
           consumeAny();
           String field = parseFieldName();
           // Transform o.x into o["x"].
-          expr = new PropertyAccess(expr, new LiteralString('"$field"'));
+          expr = new PropertyAccess(expr, new LiteralString('$field'));
           break;
         case "LPAREN":
           if (callsAreAllowed) {
