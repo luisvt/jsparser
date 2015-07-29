@@ -1,5 +1,9 @@
 name: jsparser2
 version: 0.0.1
 description: A simple console application.
-#dependencies:
+dependencies:
 #  foo_bar: '>=1.0.0 <2.0.0'
+  peg:
+    git: https://github.com/luisvt/peg.git
+transformers:
+  - peg
