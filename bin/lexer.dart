@@ -136,8 +136,7 @@ class Lexer {
   Token readString(String startChar) {
     assert(charsLeft());
     assert(input[position] == startChar);
-    int startPos = position;
-    position++;
+    int startPos = position++;
     bool sawBackslash = false;
     while (charsLeft() && !isLineTerminator(input[position])) {
       if (sawBackslash) {
@@ -153,6 +152,13 @@ class Lexer {
       }
     }
     throw "Unterminated string $startPos";
+  }
+
+  Token readSingleLineComment() {
+    assert(charsLeft());
+    int startPos = position;
+    while (charsLeft() && !isLineTerminator(input[position])) position++;
+    return new Token("SINGLE_LINE_COMMENT", position, input.substring(startPos, position));
   }
 
   Token readKeywordOrIdentifier() {
@@ -240,7 +246,8 @@ class Lexer {
     eatBlanks();
     // Line comments.
     if (pointsTo("//")) {
-      eatUntilLineTerminator();
+      return readSingleLineComment();
+//      eatUntilLineTerminator();
     }
     if (pointsTo("/*")) {
       // Make sure we don't skip line terminators;

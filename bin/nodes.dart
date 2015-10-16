@@ -65,6 +65,7 @@ abstract class NodeVisitor<T> {
   T visitLiteralNumber(LiteralNumber node);
   T visitLiteralNull(LiteralNull node);
   T visitLiteralUndefined(LiteralUndefined node);
+  T visitSingleLineComment(SingleLineComment node);
 
   T visitArrayInitializer(ArrayInitializer node);
   T visitArrayElement(ArrayElement node);
@@ -761,6 +762,15 @@ class LiteralNumber extends Literal {
   LiteralNumber(this.value);
 
   accept(NodeVisitor visitor) => visitor.visitLiteralNumber(this);
+}
+
+class SingleLineComment extends Statement {
+
+  final String value;
+
+  SingleLineComment(this.value);
+
+  accept(NodeVisitor visitor) => visitor.visitLiteralString(this);
 }
 
 class ArrayInitializer extends Expression {

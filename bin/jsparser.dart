@@ -15,12 +15,8 @@
 library jsdart;
 
 import "dart:io";
-import "lexer.dart";
-import "nodes.dart";
-import "parser.dart";
-import "printer.dart";
-import "resolver.dart";
-import "var.dart";
+import 'package:jsparser2/javascript_parser.dart';
+import "package:parser_error/parser_error.dart";
 
 void main(List<String> args) {
   bool printResolution = (args.length == 2 && args[0] == "--print-resolution");
@@ -30,13 +26,39 @@ void main(List<String> args) {
   }
   File file = new File(args[printResolution ? 1 : 0]);
   file.readAsString().then((String content) {
-    Parser parser = new Parser(new Lexer(content));
-    Program program = parser.parseProgram();
-    Map<Node, Var> resolution = resolve(program);
-    Printer printer = printResolution ? new ResolverPrinter(resolution) : new Printer();
-    printer.visit(program);
-    print(printer.outBuffer);
+    (parse(content));
   });
+}
+
+dynamic parse(String content) {
+  var parser = new JavascriptParser(content);
+  var result = parser.parse_Start();
+  if(!parser.success) {
+    var messages = [];
+    for(var error in parser.errors()) {
+      messages.add(new ParserErrorMessage(error.message, error.start, error.position));
+    }
+
+    var strings = ParserErrorFormatter.format(parser.text, messages);
+    print(strings.join("\n"));
+    throw new FormatException();
+  }
+
+  print(joinAll(result));
+
+  return result;
+}
+
+String joinAll(result) {
+  String res = '';
+  for(var val in result) {
+    if(val is String) {
+      res += val;
+    } else if(val is List && val.isNotEmpty) {
+      res += joinAll(val);
+    }
+  }
+  return res;
 }
 
 void printUsage() {

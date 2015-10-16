@@ -81,7 +81,7 @@ class Parser {
   Token consumeAny() {
     Token result = peekToken();
     previousTokenType = result.type;
-    peekedTokens.length--;
+    peekedTokens.removeLast();
     return result;
   }
 
@@ -119,6 +119,10 @@ class Parser {
         // engine implements it this way.
         return parseFunctionDeclaration();
       case "ID": return parseLabeledOrExpression();
+      case 'SINGLE_LINE_COMMENT':
+        var value = consumeAny().value;
+        print("consuming SingleLineComment: " + value);
+        return new SingleLineComment(value);
       default:
         // Errors will be handled in the expression parser.
         // Var declaration lists are handled by the expression statements too.
